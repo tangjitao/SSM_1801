@@ -1,0 +1,19 @@
+<html xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <title>修改</title>
+</head>
+<body>
+<form action="/student/update.do" method="post">
+    <input type="hidden" name="id" th:value="${stu.id}">
+    姓名:<input name="name"th:value="${stu.name}">
+    性别:男<input type="radio" name="sex" th:value="1"th:checked="${stu.sex eq '1'?'checked':''}"> 女<input type="radio" name="sex" th:value="2"th:checked="${stu.sex eq '2'?'checked':''}" >
+    年龄:<input name="age" th:value="${stu.age}">
+    学号:<input name="position" th:value="${stu.position}">
+    班级:<select name="cid">
+    <option>--请选择--</option>
+        <option th:each="i : ${list}" th:value="${i.cid}" th:text="${i.cname}" th:checked="${i.cid eq stu.cid ? 'selected':''}" ></option>
+</select>
+    <input type="submit" value="提交修改">
+</form>
+</body>
+</html>

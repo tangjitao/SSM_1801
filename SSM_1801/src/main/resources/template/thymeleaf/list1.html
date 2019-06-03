@@ -1,0 +1,209 @@
+<html xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/layui/css/layui.css" media="all">
+    <!-- 注意：如果你直接复制所有代码到本地，上述css路径需要改成你本地的 -->
+</head>
+<body>
+<form class="layui-form"  method="post">
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">姓名</label>
+            <div class="layui-input-inline">
+                <input type="tel" name="name"  autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-inline">
+        <label class="layui-form-label">单选框</label>
+        <div class="layui-input-inline">
+            <input type="radio" name="sex" value="1" title="男">
+            <input type="radio" name="sex" value="2" title="女">
+        </div>
+        </div>
+
+        <div class="layui-inline">
+        <label class="layui-form-label">单行选择框</label>
+        <div class="layui-input-inline">
+            <select name="cid" lay-filter="aihao">
+                <option value="0">请选择</option>
+                <option th:each="i : ${list}" th:value="${i.cid}" th:text="${i.cname}"></option>
+            </select>
+        </div>
+        </div>
+
+        <div class="layui-inline">
+        <div class="layui-input-inline">
+            <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+        </div>
+        </div>
+    </div>
+
+</form>
+
+<table class="layui-hide" id="test" lay-filter="test"></table>
+
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+
+<script src="/layui/layui.js" charset="utf-8"></script>
+<script src="/js/jquery-3.3.1.js" charset="utf-8"></script>
+
+
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-btn-container">
+        <button class="layui-btn layui-btn-sm" lay-event="getCheckData">选中行数据删除</button>
+        <button class="layui-btn layui-btn-sm" lay-event="getCheckLength">获取选中数目</button>
+        <button class="layui-btn layui-btn-sm" lay-event="add">添加</button>
+    </div>
+
+</script>
+
+<script type="text/html" id="titleTpl">
+    {{#  if(d.sex == '1'){ }}
+    男
+    {{#  } else { }}
+    女
+    {{#  } }}
+</script>
+
+<script>
+
+    layui.use(['form','table'], function(){
+        var form = layui.form;
+        var table = layui.table;
+
+        //监听提交
+        form.on('submit(formDemo)', function (data) {
+            var list = data.field
+            table.reload("test",{
+                where:{
+                    name:list.name,
+                    sex:list.sex,
+                    cid:list.cid
+                }
+            })
+            return false;
+        });
+
+        table.render({
+            elem: '#test'
+            ,url:'/student/query.do'
+            ,toolbar: '#toolbarDemo'
+            ,title: '用户数据表'
+            ,cols:
+                [
+                [
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'name', title:'姓名', width:80, edit: 'text', sort: true}
+                ,{field:'sex', title:'性别', width:100,templet:"#titleTpl"}
+                ,{field:'age', title:'年龄', width:80}
+                ,{field:'position', title:'学号', width:80, sort: true}
+                ,{field:'classes', title:'班级', templet: '<div>{{d.classes.cname}}</div>' ,width:120}
+                ,{fixed: 'right', title:'操作', toolbar: '#barDemo', width:150}
+            ]
+            ]
+            ,page: true
+            ,limit:3
+        });
+        //头工具栏事件
+        table.on('toolbar(test)', function(obj){
+            var checkStatus = table.checkStatus(obj.config.id);
+            switch(obj.event){
+                case 'getCheckData':
+                    var data = checkStatus.data;
+                    if(data.length == 0){
+                        layer.msg("请至少选中一行",{icon:5});
+                    }else {
+                        var arr = new Array();
+                        for (i=0;i<data.length;i++){
+                            var id = data[i].id
+                            arr[i]=id
+                        }
+                        alert(arr)
+                        $.ajax({
+                            type:"post",
+                            url:"/student/deletes.do",
+                            data:{'ids':arr},
+                            traditional:true,
+                            dataType:"json",
+                            success:function (result) {
+                                if(result){
+                                    layer.msg('删除成功',{icon:1},{time:3000})
+                                    table.reload("test")
+                                }else {
+                                    layer.msg('删除失败');
+                                }
+                            }
+
+                        });
+                    }
+                    break;
+                case 'getCheckLength':
+                    var data = checkStatus.data;
+                    layer.msg('选中了：'+ data.length + ' 个');
+                    break;
+                case 'add':
+                    layer.open({
+                        type: 2,
+                        area:["600px","800px"],
+                        offset:"100px",
+                        fixed:true,
+                        content: '/student/toAdd.do',
+                        cancel: function(index, layero){
+                            if(confirm('确定要关闭么')){ //只有当点击confirm框的确定时，该层才会关闭
+                                layer.close(index)
+                                table.reload("test")
+                            }
+                        }
+                    });
+                    break;
+            };
+        });
+
+        //监听行工具事件
+        table.on('tool(test)', function(obj){
+            var data = obj.data;
+            //console.log(obj)
+            if(obj.event === 'del'){
+                layer.confirm('真的删除行么', function(index){
+                    $.get({
+                        url:"/student/delete/"+data.id+".do",
+                        success:function (data) {
+                            if (data) {
+                                table.reload("test")
+                            }
+                    }
+                    });
+                });
+            } else if(obj.event === 'edit'){
+                layer.open({
+                    type: 2,
+                    area:["600px","800px"],
+                    offset:"100px",
+                    fixed:true,
+                    content: "/student/toupdate/"+data.id+".do",
+                    cancel: function(index, layero){
+                        if(confirm('确定要关闭么')){ //只有当点击confirm框的确定时，该层才会关闭
+                            layer.close(index)
+                            table.reload("test")
+                        }
+                    },
+                    end:function () {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
